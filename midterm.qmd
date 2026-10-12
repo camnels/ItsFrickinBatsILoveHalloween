@@ -3,3 +3,7 @@ title: "midterm"
 format: html
 ---
 
+```{r}
+library(tidyverse)
+numbats <- read_csv("numbats.csv")
+
