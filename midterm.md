@@ -1,0 +1,142 @@
+# midterm datasprint
+
+
+Introduction: This dataset describes user-input numbat observations in
+Australia. Some important variables include the date as well as columns
+for the year, month, and weekday separately, the dryandra condition,
+which specifies if it occurred in or out of the national park, and the
+lat/lon of the observation. My research question is: How have numbat
+sightings changed over time and between weekdays, and does this vary
+outside of the Dryandra Woodland NP?
+
+Analysis:
+
+``` r
+#data 
+library(tidyverse)
+```
+
+    ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+    ✔ dplyr     1.2.1     ✔ readr     2.2.0
+    ✔ forcats   1.0.1     ✔ stringr   1.6.0
+    ✔ ggplot2   4.0.3     ✔ tibble    3.3.1
+    ✔ lubridate 1.9.5     ✔ tidyr     1.3.2
+    ✔ purrr     1.2.2     
+    ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+    ✖ dplyr::filter() masks stats::filter()
+    ✖ dplyr::lag()    masks stats::lag()
+    ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+
+``` r
+library(ggplot2)
+
+numbats_full <- read_csv("numbats.csv")
+```
+
+    Rows: 805 Columns: 16
+    ── Column specification ────────────────────────────────────────────────────────
+    Delimiter: ","
+    chr  (6): scientificName, taxonConceptID, recordID, dataResourceName, month,...
+    dbl  (7): decimalLatitude, decimalLongitude, year, hour, prcp, tmax, tmin
+    lgl  (1): dryandra
+    dttm (1): eventDate
+    date (1): day
+
+    ℹ Use `spec()` to retrieve the full column specification for this data.
+    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
+numbats <- numbats_full %>%
+  filter(is.na(decimalLatitude)==FALSE, is.na(eventDate)==FALSE) %>% #if there's no location or date AXE IT 
+  select(decimalLatitude, decimalLongitude, recordID, year, month, wday, hour, dryandra) #stuff i'm interested in
+
+#obs count by year, separated by dryandra 
+numstats_year <- numbats %>%
+  #filter(dryandra==FALSE) %>%
+  group_by(year, dryandra) %>%
+  summarise(count = n())
+```
+
+    `summarise()` has regrouped the output.
+    ℹ Summaries were computed grouped by year and dryandra.
+    ℹ Output is grouped by year.
+    ℹ Use `summarise(.groups = "drop_last")` to silence this message.
+    ℹ Use `summarise(.by = c(year, dryandra))` for per-operation grouping
+      (`?dplyr::dplyr_by`) instead.
+
+``` r
+#obs count by weekday, separated by dryandra 
+numstats_wday <- numbats %>%
+  #filter(dryandra=TRUE) %>%
+  group_by(wday, dryandra) %>%
+  summarise(count = n())
+```
+
+    `summarise()` has regrouped the output.
+    ℹ Summaries were computed grouped by wday and dryandra.
+    ℹ Output is grouped by wday.
+    ℹ Use `summarise(.groups = "drop_last")` to silence this message.
+    ℹ Use `summarise(.by = c(wday, dryandra))` for per-operation grouping
+      (`?dplyr::dplyr_by`) instead.
+
+``` r
+#plot - observations per year over time, separated by location
+#I omitted 4 observations pre-2000 for plotting purposes 
+ggplot(numstats_year, aes(x=year,y=count, color=dryandra)) +
+  geom_line(linewidth = 3) + 
+  scale_x_continuous(
+    breaks = seq(2000, 2025, by = 5),
+    limits = c(2000, 2025)) +
+    labs(title="Numbat Observations Post-2000, Inside/Outside Dryandra Woodland NP", x = "Year", y="Observation Count") +
+  scale_color_manual(
+    name = "Location in AUS",   values = c("TRUE" = "purple", "FALSE" = "grey55"),
+    labels = c("TRUE" = "Inside Dryandra NP", "FALSE" = "Outside")) + 
+  theme_minimal()
+```
+
+    Warning: Removed 4 rows containing missing values or values outside the scale range
+    (`geom_line()`).
+
+![](midterm_files/figure-commonmark/unnamed-chunk-2-1.png)
+
+``` r
+#plot - obs by day of week, separated by location
+ggplot(numstats_wday, aes(x = wday, y = count, fill = dryandra)) +
+  geom_col() +
+  scale_x_discrete(limits = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")) +
+  labs(
+    title = "Numbat Observations by Weekday",
+    x = "Day of Week",
+    y = "Observation Count"
+  ) + 
+  scale_fill_manual(
+  name = "Location in AUS",   values = c("TRUE" = "purple", "FALSE" = "grey55"),
+  labels = c("TRUE" = "Inside Dryandra NP", "FALSE" = "Outside")) + 
+  theme_minimal()
+```
+
+![](midterm_files/figure-commonmark/unnamed-chunk-3-1.png)
+
+Discussion: (Regarding line plot) There looks to be an increasing trend
+in observations outside Dryandra, with notable low and high outliers in
+2014 and 2015 respectively. To analyze, I would put in a trendline and
+assess if the trend is significant. I would also calculate the
+difference between outside and in and quantify that change.
+
+(Bar chart) Cool pattern. Less weekend observations (relative to the
+weekday obs) outside in the wild, but slightly more weekend observations
+(relative to the rest of inside obs) inside the national park. The
+latter makes sense as visitors probably go to the NP when they’re off
+work. I’d look further into the difference between weekdays and weekends
+and assess significance between the two as well as inside vs outside.
+
+Tie to class: The plots (in my very humble opinion) are legible, neat,
+and easy to understand. To meet the learning standards, I was able to
+look at the dataset, assess its usability and limitations
+(e.g. everything is 1:00pm, mostly empty climate data, some empty
+locations, etc.), clean it appropriately and decide what analysis would
+be applicable. I was then able to convert that idea to R code that
+successfully runs! This class has taught me how to keep my analysis
+brief and sucinct but still sound—I took an R class in undergrad and I
+felt like it was my professor vs. me vs. chatgpt and nobody was winning.
+Now I actually know what is going on.
